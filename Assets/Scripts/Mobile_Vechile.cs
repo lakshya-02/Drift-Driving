@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class VechileControl : MonoBehaviour
+public class Mobile_Vechile : MonoBehaviour
 {
     public Rigidbody playerRB;
     public WheelParticles wheelParticles;

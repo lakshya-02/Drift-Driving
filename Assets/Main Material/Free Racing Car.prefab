@@ -553,8 +553,6 @@ GameObject:
   m_Component:
   - component: {fileID: 607470799920100569}
   - component: {fileID: 1372676827195355036}
-  - component: {fileID: 5597833096062719194}
-  - component: {fileID: 2600338482297570883}
   - component: {fileID: 4306966550331388004}
   m_Layer: 0
   m_Name: Free Racing Car
@@ -571,7 +569,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4359187758497343471}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 1, y: 1.33, z: -5.04}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -608,104 +606,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &5597833096062719194
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4359187758497343471}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b41a9b4a242f0ab498024ca4d37cd071, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  colliders:
-    FRWheel: {fileID: 1417499844090333085}
-    FLWheel: {fileID: 1591911631197322788}
-    RRWheel: {fileID: 4203681068154783042}
-    RLWheel: {fileID: 8197223876248495120}
-  wheelMeshes:
-    FRWheel: {fileID: 6342149510259437806}
-    FLWheel: {fileID: 8639628653894633080}
-    RRWheel: {fileID: 853113546618728106}
-    RLWheel: {fileID: 7892465552797205821}
-  wheelParticles:
-    FRWheel: {fileID: 4121091811527957601, guid: ddf4ea2625767fd4bb4153e7e4009ad5,
-      type: 3}
-    FLWheel: {fileID: 4121091811527957601, guid: ddf4ea2625767fd4bb4153e7e4009ad5,
-      type: 3}
-    RRWheel: {fileID: 4121091811527957601, guid: ddf4ea2625767fd4bb4153e7e4009ad5,
-      type: 3}
-    RLWheel: {fileID: 4121091811527957601, guid: ddf4ea2625767fd4bb4153e7e4009ad5,
-      type: 3}
-    FRWheelTrail: {fileID: 7344874181333496816, guid: ab4ea67cd9337c341af0bd7182c60f92,
-      type: 3}
-    FLWheelTrail: {fileID: 7344874181333496816, guid: ab4ea67cd9337c341af0bd7182c60f92,
-      type: 3}
-    RRWheelTrail: {fileID: 7344874181333496816, guid: ab4ea67cd9337c341af0bd7182c60f92,
-      type: 3}
-    RLWheelTrail: {fileID: 7344874181333496816, guid: ab4ea67cd9337c341af0bd7182c60f92,
-      type: 3}
-  gasInput: 0
-  smokePrefab: {fileID: 0}
-  motorPower: 0
-  brakePower: 0
-  speed: 0
-  maxSpeed: 0
-  maxSteering: 70
-  isEngineRunning: 0
-  RPM: 0
-  redLine: 0
-  idleRPM: 0
-  rpmText: {fileID: 0}
-  gearText: {fileID: 0}
-  rpmNeedle: {fileID: 0}
-  minNeedleRotation: 0
-  maxNeedleRotation: 0
-  currentGear: 0
-  gearRatios: []
-  differentialRatio: 0
-  hpToRPMCurve:
-    serializedVersion: 2
-    m_Curve: []
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  increaseGearRPM: 0
-  decreaseGearRPM: 0
-  changeGearTime: 0.5
-  tireTrail: {fileID: 0}
-  brakeMaterial: {fileID: 0}
-  brakingColor: {r: 0, g: 0, b: 0, a: 0}
-  brakeColorIntensity: 0
-  COM: {fileID: 0}
---- !u!114 &2600338482297570883
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4359187758497343471}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 78eba6357d931eb45b4e5ae8a347392f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  runningSound: {fileID: 0}
-  runningMaxVolume: 0
-  runningMaxPitch: 0
-  reverseSound: {fileID: 0}
-  reverseMaxVolume: 0
-  reverseMaxPitch: 0
-  idleSound: {fileID: 0}
-  idleMaxVolume: 0
-  speedRatio: 0
-  LimiterSound: 1
-  LimiterFrequency: 3
-  LimiterEngage: 0.8
-  isEngineRunning: 0
-  startingSound: {fileID: 0}
 --- !u!114 &4306966550331388004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -720,15 +620,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerRB: {fileID: 1372676827195355036}
   wheelParticles:
-    frontLeft: {fileID: 1110556030845387871, guid: f91edac4d13fc4343ba96bb6a843ad05,
+    frontLeft: {fileID: 336881577860626726, guid: fe060d0ddb5ca4a6a89d81eaba5c7fe3,
       type: 3}
-    frontRight: {fileID: 1110556030845387871, guid: f91edac4d13fc4343ba96bb6a843ad05,
+    frontRight: {fileID: 336881577860626726, guid: fe060d0ddb5ca4a6a89d81eaba5c7fe3,
       type: 3}
-    backLeft: {fileID: 1110556030845387871, guid: f91edac4d13fc4343ba96bb6a843ad05,
+    backLeft: {fileID: 336881577860626726, guid: fe060d0ddb5ca4a6a89d81eaba5c7fe3,
       type: 3}
-    backRight: {fileID: 1110556030845387871, guid: f91edac4d13fc4343ba96bb6a843ad05,
+    backRight: {fileID: 336881577860626726, guid: fe060d0ddb5ca4a6a89d81eaba5c7fe3,
       type: 3}
-  smokePrefab: {fileID: 985483039366664255, guid: f91edac4d13fc4343ba96bb6a843ad05,
+  smokePrefab: {fileID: 336881577860626725, guid: fe060d0ddb5ca4a6a89d81eaba5c7fe3,
     type: 3}
   colliders:
     frontLeft: {fileID: 1591911631197322788}
@@ -740,14 +640,16 @@ MonoBehaviour:
     frontRight: {fileID: 266187491525617544}
     backLeft: {fileID: 1770243734136743231}
     backRight: {fileID: 5647141327381171337}
-  motorPower: 500
+  motorPower: 1000
+  brakePower: 500000
+  maxSteering: 35
   slipAngle: 0
   steeringCurve:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
-      time: -0.3033805
-      value: 63.141605
+      time: 4.2119937
+      value: 62.75809
       inSlope: -1.0637912
       outSlope: -1.0637912
       tangentMode: 0
@@ -757,19 +659,18 @@ MonoBehaviour:
     - serializedVersion: 3
       time: 83.17316
       value: -0.32914424
-      inSlope: 2
-      outSlope: 2
+      inSlope: 1.9064034
+      outSlope: 1.9064034
       tangentMode: 0
       weightedMode: 0
-      inWeight: 0
+      inWeight: 0.077712774
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  slipAllowance: 0.7
   gasInput: 0
   brakeInput: 0
-  brakePower: 500000
-  slipAllowance: 0.1
 --- !u!1 &5156823137679722504
 GameObject:
   m_ObjectHideFlags: 0
