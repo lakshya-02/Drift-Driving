@@ -9,9 +9,9 @@ public class Mobile_Vechile : MonoBehaviour
     public WheelColliders colliders;
     public WheelMeshes wheelMeshes;
 
-    public float motorPower = 1000f; // ✅ UPDATED: more realistic power
+    public float motorPower = 1000f;
     public float brakePower = 3000f;
-    public float maxSteering = 30f; // ✅ UPDATED: realistic angle
+    public float maxSteering = 30f;
 
     public float slipAngle;
     public AnimationCurve steeringCurve;
@@ -21,12 +21,15 @@ public class Mobile_Vechile : MonoBehaviour
     public float brakeInput;
     private float steeringInput;
     private float speed;
+    public Mybutton gasButton;
+    public Mybutton brakeButton;
+    public Mybutton rightButton;
+    public Mybutton leftButton;
 
     void Start()
     {
         playerRB = GetComponent<Rigidbody>();
 
-        // ✅ UPDATED Rigidbody settings
         playerRB.mass = 1500f;
         playerRB.drag = 0.1f;
         playerRB.angularDrag = 0.5f;
@@ -34,7 +37,6 @@ public class Mobile_Vechile : MonoBehaviour
 
         InstantiateSmoke();
 
-        // ✅ Tuning wheel friction
         TuneWheelFriction(colliders.frontLeft);
         TuneWheelFriction(colliders.frontRight);
         TuneWheelFriction(colliders.backLeft);
@@ -94,8 +96,27 @@ public class Mobile_Vechile : MonoBehaviour
     void SetInput()
     {
         gasInput = Input.GetAxis("Vertical");
+        
+        if (gasButton.isPressed)
+        {
+            gasInput += gasButton.dampenPress;
+        }
+        if (brakeButton.isPressed)
+        {
+            gasInput -= brakeButton.dampenPress; 
+        }
+
         steeringInput = Input.GetAxis("Horizontal");
 
+        if (rightButton.isPressed)
+        {
+            steeringInput += rightButton.dampenPress;
+        }
+        if (leftButton.isPressed)
+        {
+            steeringInput -= leftButton.dampenPress;
+        }
+        
         float currentSpeed = playerRB.velocity.magnitude;
 
         if (currentSpeed > 0.1f)
@@ -136,10 +157,6 @@ public class Mobile_Vechile : MonoBehaviour
     void ApplySteering()
     {
         float steeringAngle = steeringInput * maxSteering;
-
-        // Optional: Use this if your steeringCurve is smooth
-        // float steeringAngle = steeringInput * steeringCurve.Evaluate(speed);
-
         colliders.frontLeft.steerAngle = steeringAngle;
         colliders.frontRight.steerAngle = steeringAngle;
     }
