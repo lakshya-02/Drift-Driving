@@ -25,41 +25,9 @@ public class VechileControl : MonoBehaviour
     void Start()
     {
         playerRB = GetComponent<Rigidbody>();
-
-        // ✅ UPDATED Rigidbody settings
-        playerRB.mass = 1500f;
-        playerRB.drag = 0.1f;
-        playerRB.angularDrag = 0.5f;
-        playerRB.centerOfMass = new Vector3(0f, -0.5f, 0f);
-
         InstantiateSmoke();
-
-        // ✅ Tuning wheel friction
-        TuneWheelFriction(colliders.frontLeft);
-        TuneWheelFriction(colliders.frontRight);
-        TuneWheelFriction(colliders.backLeft);
-        TuneWheelFriction(colliders.backRight);
     }
-
-    void TuneWheelFriction(WheelCollider wheel)
-    {
-        WheelFrictionCurve forwardFriction = wheel.forwardFriction;
-        forwardFriction.extremumSlip = 0.4f;
-        forwardFriction.extremumValue = 1f;
-        forwardFriction.asymptoteSlip = 0.8f;
-        forwardFriction.asymptoteValue = 0.5f;
-        forwardFriction.stiffness = 2.5f;
-        wheel.forwardFriction = forwardFriction;
-
-        WheelFrictionCurve sidewaysFriction = wheel.sidewaysFriction;
-        sidewaysFriction.extremumSlip = 0.2f;
-        sidewaysFriction.extremumValue = 1f;
-        sidewaysFriction.asymptoteSlip = 0.5f;
-        sidewaysFriction.asymptoteValue = 0.75f;
-        sidewaysFriction.stiffness = 2.5f;
-        wheel.sidewaysFriction = sidewaysFriction;
-    }
-
+   
     void InstantiateSmoke()
     {
         if (smokePrefab != null)

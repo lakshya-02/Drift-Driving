@@ -755,10 +755,70 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1372676827195355036, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_Drag
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1372676827195355036, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_Mass
+      value: 1500
+      objectReference: {fileID: 0}
+    - target: {fileID: 1372676827195355036, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_ImplicitCom
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1372676827195355036, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_CenterOfMass.y
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1417499844090333085, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_ForwardFriction.m_Stiffness
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1417499844090333085, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_SidewaysFriction.m_Stiffness
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1591911631197322788, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_ForwardFriction.m_Stiffness
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1591911631197322788, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_SidewaysFriction.m_Stiffness
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4203681068154783042, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_ForwardFriction.m_Stiffness
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4203681068154783042, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_SidewaysFriction.m_Stiffness
+      value: 2.5
+      objectReference: {fileID: 0}
     - target: {fileID: 4359187758497343471, guid: 11a7dc538914aae428a667c748c8ab08,
         type: 3}
       propertyPath: m_Name
       value: Free Racing Car
+      objectReference: {fileID: 0}
+    - target: {fileID: 8197223876248495120, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_ForwardFriction.m_Stiffness
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8197223876248495120, guid: 11a7dc538914aae428a667c748c8ab08,
+        type: 3}
+      propertyPath: m_SidewaysFriction.m_Stiffness
+      value: 2.5
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 4306966550331388004, guid: 11a7dc538914aae428a667c748c8ab08, type: 3}
@@ -1296,7 +1356,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c61bfd8d9518ab14fae8f313e33671ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerRB: {fileID: 0}
+  playerRB: {fileID: 1792365371}
   wheelParticles:
     frontLeft: {fileID: 336881577860626726, guid: fe060d0ddb5ca4a6a89d81eaba5c7fe3,
       type: 3}
@@ -1353,6 +1413,12 @@ MonoBehaviour:
   brakeButton: {fileID: 665880206}
   rightButton: {fileID: 2080718001}
   leftButton: {fileID: 2017284900}
+--- !u!54 &1792365371 stripped
+Rigidbody:
+  m_CorrespondingSourceObject: {fileID: 1372676827195355036, guid: 11a7dc538914aae428a667c748c8ab08,
+    type: 3}
+  m_PrefabInstance: {fileID: 1150661812}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1977804204
 GameObject:
   m_ObjectHideFlags: 0
