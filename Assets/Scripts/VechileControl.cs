@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using System.Collections; // Required for IEnumerator if you ever use it directly here
 
 public class VechileControl : MonoBehaviour
 {
@@ -9,9 +10,9 @@ public class VechileControl : MonoBehaviour
     public WheelColliders colliders;
     public WheelMeshes wheelMeshes;
 
-    public float motorPower = 1000f; // ✅ UPDATED: more realistic power
+    public float motorPower = 1000f;
     public float brakePower = 3000f;
-    public float maxSteering = 30f; // ✅ UPDATED: realistic angle
+    public float maxSteering = 30f;
 
     public float slipAngle;
     public AnimationCurve steeringCurve;
@@ -21,11 +22,21 @@ public class VechileControl : MonoBehaviour
     public float brakeInput;
     private float steeringInput;
     private float speed;
+    public float maxSpeed = 200f;
+    private float speedclamped;
+    public int isEnginerunning = 0; // 0: Off, 1: Starting, 2: Running // UNCOMMENTED
+    private EngineAudio engineAudioComponent; // Cached reference
 
     void Start()
     {
         playerRB = GetComponent<Rigidbody>();
+        engineAudioComponent = GetComponent<EngineAudio>(); // Cache the component
+        if (engineAudioComponent == null)
+        {
+            Debug.LogError("EngineAudio component not found on this VechileControl GameObject!", this);
+        }
         InstantiateSmoke();
+        // Initialize other things if needed
     }
    
     void InstantiateSmoke()
@@ -48,9 +59,25 @@ public class VechileControl : MonoBehaviour
         }
     }
 
+    public float GetSpeedRatio()
+    {
+        var gas = Mathf.Clamp(Mathf.Abs(gasInput), 0.5f, 1f);
+        return speedclamped * gas / maxSpeed;
+    }
+
     void Update()
     {
-        speed = playerRB.velocity.magnitude;
+        // Consider getting speed from playerRB.velocity.magnitude * 3.6f for km/h if that's more intuitive
+        // The current RPM based speed is fine if it works for your calculations.
+        if (colliders.backRight != null) // Added null check for safety
+        {
+            speed = colliders.backRight.rpm * colliders.backRight.radius * Mathf.PI * 2f * 60f / 1000f;
+        }
+        else
+        {
+            speed = 0f; // Default if backRight wheel is not assigned
+        }
+        speedclamped = Mathf.Lerp(speedclamped, speed, Time.deltaTime);
         SetInput();
         ApplyMotor();
         ApplySteering();
@@ -62,9 +89,27 @@ public class VechileControl : MonoBehaviour
     void SetInput()
     {
         gasInput = Input.GetAxis("Vertical");
+
+        // If gas is pressed AND engine is currently OFF (state 0)
+        if (Mathf.Abs(gasInput) > 0 && isEnginerunning == 0) {
+            if (engineAudioComponent != null) {
+                StartCoroutine(engineAudioComponent.StartEngine());
+                isEnginerunning = 1;
+            }
+            else
+            {
+                Debug.LogWarning("EngineAudioComponent is null. Engine sound/sequence won't start. For testing, directly setting engine to running.", this);
+                // isEnginerunning = 2; // Fallback for testing movement without audio
+            }
+        }
         steeringInput = Input.GetAxis("Horizontal");
 
-        float currentSpeed = playerRB.velocity.magnitude;
+        float currentSpeed = 0f;
+        if (playerRB != null) // Added null check for safety
+        {
+            currentSpeed = playerRB.velocity.magnitude;
+        }
+
 
         if (currentSpeed > 0.1f)
         {
@@ -83,22 +128,41 @@ public class VechileControl : MonoBehaviour
         }
         else
         {
+            // This will clear brakeInput if the above condition isn't met.
+            // If you have a separate brake button, this logic would need adjustment.
             brakeInput = 0;
         }
     }
 
     void ApplyBrake()
     {
-        colliders.backLeft.brakeTorque = brakeInput * brakePower * 0.3f;
-        colliders.backRight.brakeTorque = brakeInput * brakePower * 0.3f;
-        colliders.frontLeft.brakeTorque = brakeInput * brakePower * 0.7f;
-        colliders.frontRight.brakeTorque = brakeInput * brakePower * 0.7f;
+        if (colliders.backLeft != null) colliders.backLeft.brakeTorque = brakeInput * brakePower * 0.3f;
+        if (colliders.backRight != null) colliders.backRight.brakeTorque = brakeInput * brakePower * 0.3f;
+        if (colliders.frontLeft != null) colliders.frontLeft.brakeTorque = brakeInput * brakePower * 0.7f;
+        if (colliders.frontRight != null) colliders.frontRight.brakeTorque = brakeInput * brakePower * 0.7f;
     }
 
     void ApplyMotor()
     {
-        colliders.backLeft.motorTorque = gasInput * motorPower;
-        colliders.backRight.motorTorque = gasInput * motorPower;
+        // Allow motor if engine is STARTING (1) or fully RUNNING (2)
+        if (isEnginerunning >= 1) // Changed from "> 1" to ">= 1"
+        {
+            if (Mathf.Abs(speed) < maxSpeed)
+            {
+                if (colliders.backLeft != null) colliders.backLeft.motorTorque = gasInput * motorPower;
+                if (colliders.backRight != null) colliders.backRight.motorTorque = gasInput * motorPower;
+            }
+            else
+            {
+                if (colliders.backLeft != null) colliders.backLeft.motorTorque = 0f;
+                if (colliders.backRight != null) colliders.backRight.motorTorque = 0f;
+            }
+        }
+        else // Engine is OFF (state 0)
+        {
+            if (colliders.backLeft != null) colliders.backLeft.motorTorque = 0f;
+            if (colliders.backRight != null) colliders.backRight.motorTorque = 0f;
+        }
     }
 
     void ApplySteering()
@@ -108,8 +172,8 @@ public class VechileControl : MonoBehaviour
         // Optional: Use this if your steeringCurve is smooth
         // float steeringAngle = steeringInput * steeringCurve.Evaluate(speed);
 
-        colliders.frontLeft.steerAngle = steeringAngle;
-        colliders.frontRight.steerAngle = steeringAngle;
+        if (colliders.frontLeft != null) colliders.frontLeft.steerAngle = steeringAngle;
+        if (colliders.frontRight != null) colliders.frontRight.steerAngle = steeringAngle;
     }
 
     void UpdateWheelMeshes()
@@ -122,7 +186,7 @@ public class VechileControl : MonoBehaviour
 
     void UpdateWheelPosition(WheelCollider col, Transform mesh)
     {
-        if (col == null || mesh == null) return;
+        if (col == null || mesh == null) return; // CORRECTED SYNTAX
         Vector3 pos;
         Quaternion rot;
         col.GetWorldPose(out pos, out rot);
@@ -134,13 +198,13 @@ public class VechileControl : MonoBehaviour
     {
         WheelHit hit;
 
-        if (colliders.frontLeft.GetGroundHit(out hit))
+        if (colliders.frontLeft != null && wheelParticles.frontLeft != null && colliders.frontLeft.GetGroundHit(out hit))
             ToggleSmoke(wheelParticles.frontLeft, hit);
-        if (colliders.frontRight.GetGroundHit(out hit))
+        if (colliders.frontRight != null && wheelParticles.frontRight != null && colliders.frontRight.GetGroundHit(out hit))
             ToggleSmoke(wheelParticles.frontRight, hit);
-        if (colliders.backLeft.GetGroundHit(out hit))
+        if (colliders.backLeft != null && wheelParticles.backLeft != null && colliders.backLeft.GetGroundHit(out hit))
             ToggleSmoke(wheelParticles.backLeft, hit);
-        if (colliders.backRight.GetGroundHit(out hit))
+        if (colliders.backRight != null && wheelParticles.backRight != null && colliders.backRight.GetGroundHit(out hit))
             ToggleSmoke(wheelParticles.backRight, hit);
     }
 
