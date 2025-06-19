@@ -24,19 +24,24 @@ public class VechileControl : MonoBehaviour
     private float speed;
     public float maxSpeed = 200f;
     private float speedclamped;
-    public int isEnginerunning = 0; // 0: Off, 1: Starting, 2: Running // UNCOMMENTED
+    public int isEnginerunning = 0; // 0: Off, 1: Starting, 2: Running
+    public float reversePowerMultiplier = 0.75f; // Add this line. Set > 1 for faster reverse.
     private EngineAudio engineAudioComponent; // Cached reference
+    public float steeringSensitivity = 1.0f; // Adjust turn sensitivity
+    private float forwardFrictionMultiplier = 2.0f; // Acceleration/braking grip
 
     void Start()
     {
         playerRB = GetComponent<Rigidbody>();
-        engineAudioComponent = GetComponent<EngineAudio>(); // Cache the component
-        if (engineAudioComponent == null)
-        {
-            Debug.LogError("EngineAudio component not found on this VechileControl GameObject!", this);
-        }
+        engineAudioComponent = GetComponent<EngineAudio>();
+        playerRB.centerOfMass = new Vector3(0f, -0.5f, 0f);
+
+        ApplyFrictionSettings(colliders.frontLeft);
+        ApplyFrictionSettings(colliders.frontRight);
+        ApplyFrictionSettings(colliders.backLeft);
+        ApplyFrictionSettings(colliders.backRight);
+
         InstantiateSmoke();
-        // Initialize other things if needed
     }
    
     void InstantiateSmoke()
@@ -67,17 +72,9 @@ public class VechileControl : MonoBehaviour
 
     void Update()
     {
-        // Consider getting speed from playerRB.velocity.magnitude * 3.6f for km/h if that's more intuitive
-        // The current RPM based speed is fine if it works for your calculations.
-        if (colliders.backRight != null) // Added null check for safety
-        {
-            speed = colliders.backRight.rpm * colliders.backRight.radius * Mathf.PI * 2f * 60f / 1000f;
-        }
-        else
-        {
-            speed = 0f; // Default if backRight wheel is not assigned
-        }
-        speedclamped = Mathf.Lerp(speedclamped, speed, Time.deltaTime);
+        speed = playerRB.velocity.magnitude * 3.6f;
+        speedclamped = Mathf.Lerp(speedclamped, speed, Time.deltaTime * 5f);
+
         SetInput();
         ApplyMotor();
         ApplySteering();
@@ -88,55 +85,55 @@ public class VechileControl : MonoBehaviour
 
     void SetInput()
     {
-        gasInput = Input.GetAxis("Vertical");
+        gasInput = Input.GetAxis("Vertical");     // -1 (reverse), 1 (forward)
+        steeringInput = Input.GetAxis("Horizontal");
 
-        // If gas is pressed AND engine is currently OFF (state 0)
-        if (Mathf.Abs(gasInput) > 0 && isEnginerunning == 0) {
-            if (engineAudioComponent != null) {
+        if (Mathf.Abs(gasInput) > 0 && isEnginerunning == 0)
+        {
+            if (engineAudioComponent != null)
+            {
                 StartCoroutine(engineAudioComponent.StartEngine());
                 isEnginerunning = 1;
             }
-            else
-            {
-                Debug.LogWarning("EngineAudioComponent is null. Engine sound/sequence won't start. For testing, directly setting engine to running.", this);
-                // isEnginerunning = 2; // Fallback for testing movement without audio
-            }
-        }
-        steeringInput = Input.GetAxis("Horizontal");
-
-        float currentSpeed = 0f;
-        if (playerRB != null) // Added null check for safety
-        {
-            currentSpeed = playerRB.velocity.magnitude;
         }
 
+        float movingDirection = Vector3.Dot(transform.forward, playerRB.velocity);
+        speed = playerRB.velocity.magnitude * 3.6f;
 
-        if (currentSpeed > 0.1f)
+        // Calculate slip
+        if (speed > 0.1f)
         {
-            Vector3 velocityDirection = playerRB.velocity.normalized;
-            slipAngle = Vector3.Angle(transform.forward, velocityDirection);
+            Vector3 velocityDir = playerRB.velocity.normalized;
+            slipAngle = Vector3.Angle(transform.forward, velocityDir);
         }
         else
         {
             slipAngle = 0f;
         }
 
-        if (slipAngle > 120f && gasInput < 0 && currentSpeed > 1.0f)
+        // Reset brake
+        brakeInput = 0f;
+
+        // === REVERSE VS BRAKE FIX START ===
+        bool wantsToReverse = gasInput < 0;
+        bool goingForward   = movingDirection > 0.5f;
+        bool goingBackward  = movingDirection < -0.5f;
+
+        if (wantsToReverse && goingForward)
         {
             brakeInput = Mathf.Abs(gasInput);
-            gasInput = 0;
+            gasInput   = 0f;
         }
-        else
+        else if (gasInput > 0 && goingBackward)
         {
-            // This will clear brakeInput if the above condition isn't met.
-            // If you have a separate brake button, this logic would need adjustment.
-            brakeInput = 0;
+            brakeInput = Mathf.Abs(gasInput);
+            gasInput   = 0f;
         }
     }
 
     void ApplyBrake()
     {
-        if (colliders.backLeft != null) colliders.backLeft.brakeTorque = brakeInput * brakePower * 0.3f;
+        if (colliders.backLeft  != null) colliders.backLeft.brakeTorque  = brakeInput * brakePower * 0.3f;
         if (colliders.backRight != null) colliders.backRight.brakeTorque = brakeInput * brakePower * 0.3f;
         if (colliders.frontLeft != null) colliders.frontLeft.brakeTorque = brakeInput * brakePower * 0.7f;
         if (colliders.frontRight != null) colliders.frontRight.brakeTorque = brakeInput * brakePower * 0.7f;
@@ -145,12 +142,19 @@ public class VechileControl : MonoBehaviour
     void ApplyMotor()
     {
         // Allow motor if engine is STARTING (1) or fully RUNNING (2)
-        if (isEnginerunning >= 1) // Changed from "> 1" to ">= 1"
+        if (isEnginerunning >= 1)
         {
+            // Determine the torque to apply
+            float currentMotorTorque = motorPower;
+            if (gasInput < 0) // If we are reversing
+            {
+                currentMotorTorque *= reversePowerMultiplier;
+            }
+
             if (Mathf.Abs(speed) < maxSpeed)
             {
-                if (colliders.backLeft != null) colliders.backLeft.motorTorque = gasInput * motorPower;
-                if (colliders.backRight != null) colliders.backRight.motorTorque = gasInput * motorPower;
+                if (colliders.backLeft != null) colliders.backLeft.motorTorque = gasInput * currentMotorTorque;
+                if (colliders.backRight != null) colliders.backRight.motorTorque = gasInput * currentMotorTorque;
             }
             else
             {
@@ -167,13 +171,21 @@ public class VechileControl : MonoBehaviour
 
     void ApplySteering()
     {
-        float steeringAngle = steeringInput * maxSteering;
+        float speedFactor = Mathf.Clamp01(speed / maxSpeed); // Scale speed between 0 and 1
+        float dynamicSteeringAngle = Mathf.Lerp(maxSteering, maxSteering * 0.5f, speedFactor); // Reduce steering at high speeds
 
-        // Optional: Use this if your steeringCurve is smooth
-        // float steeringAngle = steeringInput * steeringCurve.Evaluate(speed);
+        float movingDirection = Vector3.Dot(transform.forward, playerRB.velocity);
+        float steeringAngle = steeringInput * dynamicSteeringAngle * steeringSensitivity;
 
-        if (colliders.frontLeft != null) colliders.frontLeft.steerAngle = steeringAngle;
-        if (colliders.frontRight != null) colliders.frontRight.steerAngle = steeringAngle;
+        if (movingDirection < 0) // Reverse movement
+        {
+            steeringAngle = -steeringAngle; // Invert steering angle for reverse
+        }
+
+        if (colliders.frontLeft != null)
+            colliders.frontLeft.steerAngle = steeringAngle;
+        if (colliders.frontRight != null)
+            colliders.frontRight.steerAngle = steeringAngle;
     }
 
     void UpdateWheelMeshes()
@@ -222,6 +234,23 @@ public class VechileControl : MonoBehaviour
             if (particle.isPlaying)
                 particle.Stop();
         }
+    }
+
+    private void ApplyFrictionSettings(WheelCollider wc)
+    {
+        if (wc == null) return;
+
+        var forwardFriction = wc.forwardFriction;
+        forwardFriction.stiffness = forwardFrictionMultiplier;
+        wc.forwardFriction = forwardFriction;
+
+        var sideFriction = wc.sidewaysFriction;
+        sideFriction.extremumSlip = 0.2f;
+        sideFriction.extremumValue = 1.5f;
+        sideFriction.asymptoteSlip = 0.4f;
+        sideFriction.asymptoteValue = 0.75f;
+        sideFriction.stiffness = 2.2f;
+        wc.sidewaysFriction = sideFriction;
     }
 
     [Serializable]
