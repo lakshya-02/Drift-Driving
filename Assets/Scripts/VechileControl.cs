@@ -17,6 +17,7 @@ public class VechileControl : MonoBehaviour
     public float slipAngle;
     public AnimationCurve steeringCurve;
     public float slipAllowance = 0.5f;
+    public float maxSmokeEmission = 50f; // Add this line
 
     public float gasInput;
     public float brakeInput;
@@ -43,31 +44,51 @@ public class VechileControl : MonoBehaviour
 
         InstantiateSmoke();
     }
-   
-    void InstantiateSmoke()
+
+    private void InstantiateSmoke()
     {
         if (smokePrefab != null)
         {
-            float wheelRadius = colliders.frontRight != null ? colliders.frontRight.radius : 0f;
-
-            if (wheelParticles != null)
-            {
-                if (colliders.frontRight != null)
-                    wheelParticles.frontRight = Instantiate(smokePrefab, colliders.frontRight.transform.position - Vector3.up * wheelRadius, Quaternion.identity, colliders.frontRight.transform).GetComponent<ParticleSystem>();
-                if (colliders.frontLeft != null)
-                    wheelParticles.frontLeft = Instantiate(smokePrefab, colliders.frontLeft.transform.position - Vector3.up * wheelRadius, Quaternion.identity, colliders.frontLeft.transform).GetComponent<ParticleSystem>();
-                if (colliders.backRight != null)
-                    wheelParticles.backRight = Instantiate(smokePrefab, colliders.backRight.transform.position - Vector3.up * wheelRadius, Quaternion.identity, colliders.backRight.transform).GetComponent<ParticleSystem>();
-                if (colliders.backLeft != null)
-                    wheelParticles.backLeft = Instantiate(smokePrefab, colliders.backLeft.transform.position - Vector3.up * wheelRadius, Quaternion.identity, colliders.backLeft.transform).GetComponent<ParticleSystem>();
-            }
+            Instantiate(smokePrefab, transform.position, Quaternion.identity);
         }
     }
 
-    public float GetSpeedRatio()
+    // New: This coroutine now controls the entire engine start sequence and state.
+    IEnumerator EngineStartSequence()
     {
-        var gas = Mathf.Clamp(Mathf.Abs(gasInput), 0.5f, 1f);
-        return speedclamped * gas / maxSpeed;
+        // State 1: Tell the car it's "Starting"
+        isEnginerunning = 1;
+        if (engineAudioComponent != null)
+        {
+            // Tell the audio script to play its start sound
+            StartCoroutine(engineAudioComponent.StartEngine());
+        }
+
+        // Wait for the starting sound to play for a bit
+        yield return new WaitForSeconds(0.6f);
+        if (engineAudioComponent != null)
+        {
+            // Now, tell the audio script that the engine is "Running"
+            engineAudioComponent.isEngineRunning = true;
+        }
+        
+        // Wait a little longer for the sequence to feel complete
+        yield return new WaitForSeconds(0.4f);
+
+        // State 2: Tell the car it's fully "Running"
+        isEnginerunning = 2;
+    }
+
+    // Changed: This method now provides a SIGNED ratio based on actual movement, not gas input.
+    public float GetSignedSpeedRatio()
+    {
+        if (playerRB == null) return 0f;
+
+        // Determine direction of travel relative to car's forward vector
+        float movingDirection = Vector3.Dot(transform.forward, playerRB.velocity);
+        
+        // Return the speed ratio, preserving the sign of the direction
+        return (speedclamped / maxSpeed) * Mathf.Sign(movingDirection);
     }
 
     void Update()
@@ -85,16 +106,13 @@ public class VechileControl : MonoBehaviour
 
     void SetInput()
     {
-        gasInput = Input.GetAxis("Vertical");     // -1 (reverse), 1 (forward)
+        gasInput = Input.GetAxis("Vertical");
         steeringInput = Input.GetAxis("Horizontal");
 
+        // Changed: Call the new coroutine for the full sequence
         if (Mathf.Abs(gasInput) > 0 && isEnginerunning == 0)
         {
-            if (engineAudioComponent != null)
-            {
-                StartCoroutine(engineAudioComponent.StartEngine());
-                isEnginerunning = 1;
-            }
+            StartCoroutine(EngineStartSequence());
         }
 
         float movingDirection = Vector3.Dot(transform.forward, playerRB.velocity);
@@ -224,15 +242,20 @@ public class VechileControl : MonoBehaviour
     {
         if (particle == null) return;
 
-        if ((Mathf.Abs(hit.forwardSlip) + Mathf.Abs(hit.sidewaysSlip)) > slipAllowance)
+        var emissionModule = particle.emission;
+        float totalSlip = Mathf.Abs(hit.forwardSlip) + Mathf.Abs(hit.sidewaysSlip);
+
+        if (totalSlip > slipAllowance)
         {
-            if (!particle.isPlaying)
-                particle.Play();
+            // The amount of slip determines the emission rate.
+            // This maps the slip amount to a value between 0 and maxSmokeEmission.
+            // The divisor '2.0f' controls sensitivity; a smaller number makes it more sensitive.
+            float slipRatio = Mathf.Clamp01((totalSlip - slipAllowance) / 2.0f);
+            emissionModule.rateOverTime = slipRatio * maxSmokeEmission;
         }
         else
         {
-            if (particle.isPlaying)
-                particle.Stop();
+            emissionModule.rateOverTime = 0;
         }
     }
 

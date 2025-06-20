@@ -31,69 +31,57 @@ public class EngineAudio : MonoBehaviour
 
     void Update()
     {
-        float speedSign = 0;
-        if (vehicleControl != null)
-        {
-            float currentSpeedRatio = vehicleControl.GetSpeedRatio();
-            speedSign = Mathf.Sign(currentSpeedRatio);
-            speedRatio = Mathf.Abs(currentSpeedRatio);
-        }
-        else return;
-
-        revLimiter = speedRatio > LimiterEngage ? (Mathf.Sin(Time.time * LimiterFrequency) + 1f) * LimiterSound * (speedRatio - LimiterEngage) : 0f;
-
-        if (isEngineRunning)
-        {
-            if (idleSound != null)
-                idleSound.volume = Mathf.Lerp(0.1f, idleMaxVolume, speedRatio - revLimiter);
-
-            if (speedSign > 0) // Moving forward
-            {
-                if (reverseSound != null) reverseSound.volume = 0;
-                if (runningSound != null)
-                {
-                    runningSound.volume = Mathf.Lerp(0.3f, runningMaxVolume, speedRatio - revLimiter);
-                    runningSound.pitch = Mathf.Lerp(0.3f, runningMaxPitch, speedRatio - revLimiter);
-                }
-            }
-            else if (speedSign < 0) // Moving in reverse
-            {
-                if (runningSound != null) runningSound.volume = 0;
-                if (reverseSound != null)
-                {
-                    reverseSound.volume = Mathf.Lerp(0f, reverseMaxVolume, speedRatio);
-                    reverseSound.pitch = Mathf.Lerp(0.2f, reverseMaxPitch, speedRatio);
-                }
-            }
-            else // No movement
-            {
-                if (runningSound != null) runningSound.volume = 0;
-                if (reverseSound != null) reverseSound.volume = 0;
-            }
-        }
-        else
+        // If the engine isn't running, silence all sounds.
+        if (!isEngineRunning || vehicleControl == null)
         {
             if (idleSound != null) idleSound.volume = 0;
             if (runningSound != null) runningSound.volume = 0;
             if (reverseSound != null) reverseSound.volume = 0;
+            return;
+        }
+
+        // Get the single, reliable value from VechileControl
+        float signedSpeedRatio = vehicleControl.GetSignedSpeedRatio();
+        float speedRatio = Mathf.Abs(signedSpeedRatio); // Unsigned ratio for volume/pitch
+
+        revLimiter = speedRatio > LimiterEngage ? (Mathf.Sin(Time.time * LimiterFrequency) + 1f) * LimiterSound * (speedRatio - LimiterEngage) : 0f;
+
+        if (idleSound != null)
+            idleSound.volume = Mathf.Lerp(0.1f, idleMaxVolume, speedRatio - revLimiter);
+
+        // Determine which sound to play based on the sign of the speed ratio
+        if (signedSpeedRatio > 0.01f) // Moving forward
+        {
+            if (reverseSound != null) reverseSound.volume = 0;
+            if (runningSound != null)
+            {
+                runningSound.volume = Mathf.Lerp(0.3f, runningMaxVolume, speedRatio - revLimiter);
+                runningSound.pitch = Mathf.Lerp(0.3f, runningMaxPitch, speedRatio - revLimiter);
+            }
+        }
+        else if (signedSpeedRatio < -0.01f) // Moving in reverse
+        {
+            if (runningSound != null) runningSound.volume = 0;
+            if (reverseSound != null)
+            {
+                reverseSound.volume = Mathf.Lerp(0.2f, reverseMaxVolume, speedRatio);
+                reverseSound.pitch = Mathf.Lerp(0.2f, reverseMaxPitch, speedRatio);
+            }
+        }
+        else // Idle or coasting at zero speed
+        {
+            if (runningSound != null) runningSound.volume = 0;
+            if (reverseSound != null) reverseSound.volume = 0;
         }
     }
+    
+    // This coroutine is now only responsible for playing the start sound.
     public IEnumerator StartEngine()
     {
-        if (startingSound != null) startingSound.Play();
-        if (vehicleControl != null)
+        if (startingSound != null)
         {
+            startingSound.Play();
         }
-        yield return new WaitForSeconds(0.6f);
-        isEngineRunning = true;
-        yield return new WaitForSeconds(0.4f);
-        if (vehicleControl != null)
-        {
-        }
-        else // engineAudioComponent is null
-        {
-            Debug.LogWarning("EngineAudioComponent is null. Engine sound/sequence won't start. For testing, directly setting engine to running.", this);
-            // isEnginerunning = 2; // Fallback for testing movement without audio (THIS IS COMMENTED OUT)
-        }
+        yield return null;
     }
 }

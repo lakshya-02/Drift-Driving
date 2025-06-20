@@ -6,17 +6,16 @@ public class CameraController : MonoBehaviour
 {
     public Transform player;
     private Rigidbody playerRB;
-
-    public enum CameraMode { ThirdPerson, FirstPerson, Static }
+    
+    public enum CameraMode { ThirdPerson, FirstPerson }
 
     [Header("Camera Modes")]
     public CameraMode currentMode = CameraMode.ThirdPerson;
 
     [Header("Camera Positioning")]
-    public Vector3 thirdPersonOffset = new Vector3(0f, 3.135f, -6f); // Adjusted Y (+0.635)
-    public Vector3 reverseOffset = new Vector3(0f, 3.135f, 6f);      // Adjusted Y (+0.635)
-    public Vector3 firstPersonOffset = new Vector3(0f, 2.135f, 0f);  // Adjusted Y (+0.635)
-    public Vector3 staticCameraPosition = new Vector3(0f, 10.635f, -10f); // Adjusted Y (+0.635)
+    public Vector3 thirdPersonOffset = new Vector3(0f, 3.135f, -6f);
+    // New, more realistic offset for a driver's POV. Adjust these values in the Inspector.
+    public Vector3 firstPersonOffset = new Vector3(0f, 1.2f, 0.5f);
     public float smoothTime = 0.15f;
 
     [Header("Camera LookAt")]
@@ -59,14 +58,10 @@ public class CameraController : MonoBehaviour
 
     void HandleCameraModeSwitching()
     {
-        // Switch camera modes using keys
-        if (Input.GetKeyDown(KeyCode.X))
+        // Switch to First-Person POV on pressing C
+        if (Input.GetKeyDown(KeyCode.C))
         {
             currentMode = CameraMode.FirstPerson;
-        }
-        else if (Input.GetKeyDown(KeyCode.C))
-        {
-            currentMode = CameraMode.Static;
         }
         else if (Input.GetKeyDown(KeyCode.V))
         {
@@ -84,16 +79,14 @@ public class CameraController : MonoBehaviour
             case CameraMode.FirstPerson:
                 HandleFirstPersonMode();
                 break;
-            case CameraMode.Static:
-                HandleStaticMode();
-                break;
         }
     }
 
     void HandleThirdPersonMode()
     {
         float movingDirection = Vector3.Dot(player.forward, playerRB.velocity);
-        Vector3 targetOffset = movingDirection >= 0 ? thirdPersonOffset : reverseOffset;
+        // For now, no reverse camera logic to keep it simple
+        Vector3 targetOffset = thirdPersonOffset;
         currentOffset = Vector3.Lerp(currentOffset, targetOffset, Time.fixedDeltaTime * 5f);
 
         Vector3 desiredPosition = player.position + player.transform.TransformDirection(currentOffset);
@@ -103,16 +96,8 @@ public class CameraController : MonoBehaviour
 
     void HandleFirstPersonMode()
     {
-        // No reverse mode for first-person POV
         Vector3 desiredPosition = player.position + player.transform.TransformDirection(firstPersonOffset);
-        transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref velocity, smoothTime);
-        transform.LookAt(player.position + lookAtOffset);
-    }
-
-    void HandleStaticMode()
-    {
-        // Fixed position for static camera
-        transform.position = staticCameraPosition;
-        transform.LookAt(player.position + lookAtOffset);
+        transform.position = desiredPosition;
+        transform.rotation = player.rotation; 
     }
 }
