@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
-using System.Collections; // Required for IEnumerator if you ever use it directly here
+using System.Collections;
+using TMPro; // Add this line for TextMeshPro UI elements
 
 public class VechileControl : MonoBehaviour
 {
@@ -10,8 +11,9 @@ public class VechileControl : MonoBehaviour
     public WheelColliders colliders;
     public WheelMeshes wheelMeshes;
 
-    public float motorPower = 1000f;
+    public float motorPower = 500f; // Reduced from 1000 for more controllable acceleration
     public float brakePower = 3000f;
+    public float handbrakePower = 5000f; // New: Power for the handbrake
     public float maxSteering = 30f;
 
     public float slipAngle;
@@ -23,13 +25,14 @@ public class VechileControl : MonoBehaviour
     public float brakeInput;
     private float steeringInput;
     private float speed;
-    public float maxSpeed = 200f;
+    public float maxSpeed = 160f; // Reduced from 200 for a more realistic top speed
     private float speedclamped;
     public int isEnginerunning = 0; // 0: Off, 1: Starting, 2: Running
     public float reversePowerMultiplier = 0.75f; // Add this line. Set > 1 for faster reverse.
     private EngineAudio engineAudioComponent; // Cached reference
     public float steeringSensitivity = 1.0f; // Adjust turn sensitivity
     private float forwardFrictionMultiplier = 2.0f; // Acceleration/braking grip
+    public UIController uiController; // Add this line
 
     void Start()
     {
@@ -41,6 +44,12 @@ public class VechileControl : MonoBehaviour
         ApplyFrictionSettings(colliders.frontRight);
         ApplyFrictionSettings(colliders.backLeft);
         ApplyFrictionSettings(colliders.backRight);
+
+        // New: Apply suspension settings to all wheels
+        ApplySuspensionSettings(colliders.frontLeft);
+        ApplySuspensionSettings(colliders.frontRight);
+        ApplySuspensionSettings(colliders.backLeft);
+        ApplySuspensionSettings(colliders.backRight);
 
         InstantiateSmoke();
     }
@@ -79,6 +88,12 @@ public class VechileControl : MonoBehaviour
         isEnginerunning = 2;
     }
 
+    // New: Public getter for the speedometer UI
+    public float GetSpeed()
+    {
+        return speed;
+    }
+
     // Changed: This method now provides a SIGNED ratio based on actual movement, not gas input.
     public float GetSignedSpeedRatio()
     {
@@ -102,6 +117,7 @@ public class VechileControl : MonoBehaviour
         UpdateWheelMeshes();
         ApplyBrake();
         CheckParticles();
+        UpdateUI(); // Add this line
     }
 
     void SetInput()
@@ -151,10 +167,19 @@ public class VechileControl : MonoBehaviour
 
     void ApplyBrake()
     {
-        if (colliders.backLeft  != null) colliders.backLeft.brakeTorque  = brakeInput * brakePower * 0.3f;
-        if (colliders.backRight != null) colliders.backRight.brakeTorque = brakeInput * brakePower * 0.3f;
+        // Apply standard braking from reverse/brake logic (70% front, 30% rear)
         if (colliders.frontLeft != null) colliders.frontLeft.brakeTorque = brakeInput * brakePower * 0.7f;
         if (colliders.frontRight != null) colliders.frontRight.brakeTorque = brakeInput * brakePower * 0.7f;
+        if (colliders.backLeft != null) colliders.backLeft.brakeTorque = brakeInput * brakePower * 0.3f;
+        if (colliders.backRight != null) colliders.backRight.brakeTorque = brakeInput * brakePower * 0.3f;
+
+        // Apply handbrake force ONLY to rear wheels if space is pressed
+        if (Input.GetKey(KeyCode.Space))
+        {
+            // We use a high, fixed value for the handbrake to lock the wheels
+            if (colliders.backLeft != null) colliders.backLeft.brakeTorque = handbrakePower;
+            if (colliders.backRight != null) colliders.backRight.brakeTorque = handbrakePower;
+        }
     }
 
     void ApplyMotor()
@@ -259,6 +284,24 @@ public class VechileControl : MonoBehaviour
         }
     }
 
+    // New: This method adjusts the suspension to make the car sit lower.
+    private void ApplySuspensionSettings(WheelCollider wc)
+    {
+        if (wc == null) return;
+
+        JointSpring suspension = wc.suspensionSpring;
+
+        // Lower the target position to make the car sag on its suspension
+        // Default is 0.5. A lower value makes it sit lower.
+        suspension.targetPosition = 0.3f; 
+        
+        // You can also adjust spring and damper for feel, but targetPosition is key for ride height
+        // suspension.spring = 35000f;
+        // suspension.damper = 4500f;
+
+        wc.suspensionSpring = suspension;
+    }
+
     private void ApplyFrictionSettings(WheelCollider wc)
     {
         if (wc == null) return;
@@ -274,6 +317,69 @@ public class VechileControl : MonoBehaviour
         sideFriction.asymptoteValue = 0.75f;
         sideFriction.stiffness = 2.2f;
         wc.sidewaysFriction = sideFriction;
+    }
+
+    // New: This method updates all the UI elements
+    void UpdateUI()
+    {
+        if (uiController == null) return;
+
+        // When the engine is off, show idle/off state on UI
+        if (isEnginerunning == 0)
+        {
+            if (uiController.needle != null)
+            {
+                uiController.needle.localEulerAngles = new Vector3(0, 0, uiController.minNeedleRotation);
+            }
+            if (uiController.rpmText != null)
+            {
+                uiController.rpmText.text = "RPM : 0";
+            }
+            if (uiController.gearText != null)
+            {
+                uiController.gearText.text = "Gear : N";
+            }
+            return; // Stop here if engine is off
+        }
+
+        // Update the speedometer needle rotation
+        if (uiController.needle != null)
+        {
+            float speedRatio = GetSpeed() / maxSpeed;
+            float needleRotation = Mathf.Lerp(uiController.minNeedleRotation, uiController.maxNeedleRotation, speedRatio);
+            uiController.needle.localEulerAngles = new Vector3(0, 0, needleRotation);
+        }
+
+        // Update the RPM text (simulated)
+        if (uiController.rpmText != null)
+        {
+            float rpmRatio = Mathf.Abs(GetSignedSpeedRatio());
+            int simulatedRPM = 800 + (int)(rpmRatio * 6200); // Simulates RPM from 800 to 7000
+            uiController.rpmText.text = "RPM : " + simulatedRPM.ToString("0");
+        }
+
+        // Update the Gear text (simulated)
+        if (uiController.gearText != null)
+        {
+            string currentGear = "N";
+            float currentSpeed = GetSpeed();
+            float movingDirection = Vector3.Dot(transform.forward, playerRB.velocity);
+
+            if (movingDirection < -0.1f && currentSpeed > 1f)
+            {
+                currentGear = "R";
+            }
+            else if (currentSpeed > 1f)
+            {
+                // Simple gear simulation based on speed
+                if (currentSpeed < 40) currentGear = "1";
+                else if (currentSpeed < 80) currentGear = "2";
+                else if (currentSpeed < 120) currentGear = "3";
+                else if (currentSpeed < 160) currentGear = "4";
+                else currentGear = "5";
+            }
+            uiController.gearText.text = "Gear : " + currentGear;
+        }
     }
 
     [Serializable]
@@ -301,5 +407,19 @@ public class VechileControl : MonoBehaviour
         public ParticleSystem frontRight;
         public ParticleSystem backLeft;
         public ParticleSystem backRight;
+    }
+
+    // New: Add this entire class to manage UI elements
+    [Serializable]
+    public class UIController
+    {
+        [Header("UI Elements")]
+        public Transform needle; // The needle's Transform component
+        public TextMeshProUGUI rpmText;
+        public TextMeshProUGUI gearText;
+
+        [Header("Needle Settings")]
+        public float minNeedleRotation = 220f; // Updated default to match your UI
+        public float maxNeedleRotation = -240f;
     }
 }
