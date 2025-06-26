@@ -19,7 +19,8 @@ public class VechileControl : MonoBehaviour
     public float slipAngle;
     public AnimationCurve steeringCurve;
     public float slipAllowance = 0.5f;
-    public float maxSmokeEmission = 50f; // Add this line
+    public float maxSmokeEmission = 50f;
+    public float minSmokeSpeed = 20f; // New: Minimum speed (km/h) to start showing smoke
 
     public float gasInput;
     public float brakeInput;
@@ -56,10 +57,24 @@ public class VechileControl : MonoBehaviour
 
     private void InstantiateSmoke()
     {
-        if (smokePrefab != null)
+        if (smokePrefab == null || wheelParticles == null || colliders == null)
+            return;
+
+        // Helper function to instantiate and assign smoke particles
+        ParticleSystem CreateSmokeAtWheel(WheelCollider wheelCollider)
         {
-            Instantiate(smokePrefab, transform.position, Quaternion.identity);
+            if (wheelCollider == null) return null;
+
+            // Instantiate smoke prefab at the wheel's position
+            GameObject smokeInstance = Instantiate(smokePrefab, wheelCollider.transform.position, Quaternion.identity, transform);
+            return smokeInstance.GetComponent<ParticleSystem>();
         }
+
+        // Assign smoke particles to each wheel
+        wheelParticles.frontLeft = CreateSmokeAtWheel(colliders.frontLeft);
+        wheelParticles.frontRight = CreateSmokeAtWheel(colliders.frontRight);
+        wheelParticles.backLeft = CreateSmokeAtWheel(colliders.backLeft);
+        wheelParticles.backRight = CreateSmokeAtWheel(colliders.backRight);
     }
 
     // New: This coroutine now controls the entire engine start sequence and state.
@@ -116,8 +131,9 @@ public class VechileControl : MonoBehaviour
         ApplySteering();
         UpdateWheelMeshes();
         ApplyBrake();
+        UpdateSmokePositions(); // Add this line
         CheckParticles();
-        UpdateUI(); // Add this line
+        UpdateUI();
     }
 
     void SetInput()
@@ -268,13 +284,21 @@ public class VechileControl : MonoBehaviour
         if (particle == null) return;
 
         var emissionModule = particle.emission;
-        float totalSlip = Mathf.Abs(hit.forwardSlip) + Mathf.Abs(hit.sidewaysSlip);
+
+        // Only emit smoke if the car is moving above the minimum speed
+        if (speed < minSmokeSpeed)
+        {
+            emissionModule.rateOverTime = 0;
+            return;
+        }
+
+        // Make smoke more sensitive to sideways slip (drifting)
+        float slipValue = Mathf.Abs(hit.sidewaysSlip) * 1.5f + Mathf.Abs(hit.forwardSlip);
+        float totalSlip = slipValue;
 
         if (totalSlip > slipAllowance)
         {
             // The amount of slip determines the emission rate.
-            // This maps the slip amount to a value between 0 and maxSmokeEmission.
-            // The divisor '2.0f' controls sensitivity; a smaller number makes it more sensitive.
             float slipRatio = Mathf.Clamp01((totalSlip - slipAllowance) / 2.0f);
             emissionModule.rateOverTime = slipRatio * maxSmokeEmission;
         }
@@ -380,6 +404,24 @@ public class VechileControl : MonoBehaviour
             }
             uiController.gearText.text = "Gear : " + currentGear;
         }
+    }
+
+    private void UpdateSmokePositions()
+    {
+        if (wheelParticles == null || wheelMeshes == null) return;
+
+        // Update smoke positions to match wheel positions
+        if (wheelParticles.frontLeft != null && wheelMeshes.frontLeft != null)
+            wheelParticles.frontLeft.transform.position = wheelMeshes.frontLeft.position;
+
+        if (wheelParticles.frontRight != null && wheelMeshes.frontRight != null)
+            wheelParticles.frontRight.transform.position = wheelMeshes.frontRight.position;
+
+        if (wheelParticles.backLeft != null && wheelMeshes.backLeft != null)
+            wheelParticles.backLeft.transform.position = wheelMeshes.backLeft.position;
+
+        if (wheelParticles.backRight != null && wheelMeshes.backRight != null)
+            wheelParticles.backRight.transform.position = wheelMeshes.backRight.position;
     }
 
     [Serializable]
