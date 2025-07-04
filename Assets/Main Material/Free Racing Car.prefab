@@ -641,36 +641,62 @@ MonoBehaviour:
     backLeft: {fileID: 1770243734136743231}
     backRight: {fileID: 5647141327381171337}
   motorPower: 1000
-  brakePower: 500000
-  maxSteering: 35
-  slipAngle: 0
-  steeringCurve:
+  hpToRPMCurve:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
-      time: 4.2119937
-      value: 62.75809
-      inSlope: -1.0637912
-      outSlope: -1.0637912
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
-      outWeight: 0.017276058
+      outWeight: 0
     - serializedVersion: 3
-      time: 83.17316
-      value: -0.32914424
-      inSlope: 1.9064034
-      outSlope: 1.9064034
+      time: 1.1131272
+      value: -0.01285436
+      inSlope: -6.923192
+      outSlope: -6.923192
       tangentMode: 0
       weightedMode: 0
-      inWeight: 0.077712774
+      inWeight: 0.014720611
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  brakePower: 500000
+  handbrakePower: 5000
+  maxSteering: 35
+  gearState: 0
+  gearRatios:
+  - 3.5
+  - 2.5
+  - 1.8
+  - 1.3
+  - 1
+  currentGear: 0
+  differentialRatio: 3.42
+  increaseGearRPM: 5500
+  decreaseGearRPM: 2500
+  changeGearTime: 0.5
+  RPM: 0
+  idleRPM: 800
+  redLine: 7000
   slipAllowance: 0.7
+  steeringSensitivity: 1
+  minSmokeSpeed: 10
+  maxSmokeEmission: 50
   gasInput: 0
   brakeInput: 0
+  maxSpeed: 160
+  isEnginerunning: 0
+  uiController:
+    needle: {fileID: 0}
+    rpmText: {fileID: 0}
+    gearText: {fileID: 0}
+    minNeedleRotation: 220
+    maxNeedleRotation: -240
 --- !u!1 &5156823137679722504
 GameObject:
   m_ObjectHideFlags: 0
